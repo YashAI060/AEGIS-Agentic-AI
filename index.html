@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AEGIS Upgrade Planner</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root{
+      --bg0:#05070d;
+      --bg1:#070b14;
+      --cyan:#39d0ff;
+      --blue:#3b82f6;
+      --lime:#7CFF6B;
+      --amber:#ffb020;
+      --red:#ff4d4d;
+      --muted: rgba(255,255,255,.08);
+    }
+
+    /* Subtle animated grid */
+    .grid-bg{
+      background:
+        radial-gradient(1200px 600px at 70% 20%, rgba(57,208,255,.12), transparent 60%),
+        radial-gradient(1000px 500px at 20% 70%, rgba(59,130,246,.10), transparent 55%),
+        linear-gradient(to bottom, rgba(255,255,255,.04), transparent 30%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 1px, transparent 1px 36px),
+        repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 36px);
+      background-color: var(--bg0);
+    }
+
+    /* Arc reactor */
+    .reactor{
+      position: relative;
+      width: 220px;
+      height: 220px;
+      border-radius: 9999px;
+      background: radial-gradient(circle at 50% 50%, rgba(57,208,255,.22) 0 30%, rgba(57,208,255,.08) 31% 55%, rgba(255,255,255,.06) 56% 60%, rgba(0,0,0,0) 61% 100%);
+      box-shadow:
+        0 0 0 2px rgba(57,208,255,.22),
+        0 0 30px rgba(57,208,255,.15),
+        inset 0 0 35px rgba(57,208,255,.12);
+      overflow:hidden;
+    }
+    .reactor::before{
+      content:"";
+      position:absolute;
+      inset:-22px;
+      border-radius:9999px;
+      background: conic-gradient(from 0deg,
+        rgba(57,208,255,.0), rgba(57,208,255,.25), rgba(57,208,255,.0),
+        rgba(59,130,246,.0), rgba(59,130,246,.20), rgba(59,130,246,.0));
+      animation: spin 5.5s linear infinite;
+      filter: blur(.2px);
+      opacity:.9;
+    }
+    .reactor::after{
+      content:"";
+      position:absolute;
+      inset:34px;
+      border-radius:9999px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(124,255,107,.16) 0 16%, rgba(57,208,255,.18) 17% 35%, rgba(255,255,255,.06) 36% 38%, rgba(0,0,0,0) 39% 100%);
+      box-shadow:
+        inset 0 0 24px rgba(57,208,255,.18),
+        0 0 18px rgba(57,208,255,.10);
+      animation: pulse 2.8s ease-in-out infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+
+    /* Wave */
+    .wavebar{
+      width: 4px;
+      height: 10px;
+      border-radius: 9999px;
+      background: linear-gradient(to top, rgba(57,208,255,.2), rgba(57,208,255,.9));
+      animation: wave 1.2s ease-in-out infinite;
+    }
+    @keyframes wave{
+      0%,100%{transform:scaleY(.35); opacity:.55}
+      50%{transform:scaleY(1.2); opacity:1}
+    }
+
+    /* Terminal */
+    .terminal{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .scanline{
+      background: linear-gradient(to bottom, transparent, rgba(255,255,255,.06), transparent);
+      animation: scan 2.8s linear infinite;
+      mix-blend-mode: overlay;
+    }
+    @keyframes scan{
+      0%{transform:translateY(-30%)}
+      100%{transform:translateY(130%)}
+    }
+
+    /* Chips */
+    .chip{border:1px solid rgba(57,208,255,.25); background:rgba(57,208,255,.08)}
+
+    /* Focus outline */
+    :focus-visible{outline:2px solid rgba(57,208,255,.75); outline-offset:2px}
+
+    /* Range styling (minimal) */
+    input[type="range"]{accent-color: var(--cyan)}
+  </style>
+</head>
+<body class="grid-bg min-h-screen text-slate-100">
+  <header class="sticky top-0 z-30 backdrop-blur bg-black/30 border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-300/20 grid place-items-center">
+        <div class="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_18px_rgba(57,208,255,.7)]"></div>
+      </div>
+      <div class="flex-1">
+        <h1 class="text-lg font-semibold tracking-wide">AEGIS Upgrade Planner</h1>
+        <p class="text-xs text-slate-300/90">Turn your JARVIS-style assistant into a hardened, modular, measurable system.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnDemo" class="px-3 py-2 text-sm rounded-xl bg-cyan-500/10 border border-cyan-300/20 hover:bg-cyan-500/15">Run HUD Demo</button>
+        <button id="btnExport" class="px-3 py-2 text-sm rounded-xl bg-white/5 border border-white/10 hover:bg-white/10">Export Plan</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 grid lg:grid-cols-12 gap-6">
+    <!-- Left: HUD -->
+    <section class="lg:col-span-5">
+      <div class="rounded-2xl border border-white/10 bg-black/35 shadow-[0_0_0_1px_rgba(255,255,255,.03),0_18px_60px_rgba(0,0,0,.45)] overflow-hidden relative">
+        <div class="absolute inset-0 pointer-events-none">
+          <div class="scanline absolute left-0 right-0 top-0 h-24 opacity-40"></div>
+        </div>
+
+        <div class="p-5 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h2 class="font-semibold tracking-wide">HUD</h2>
+            <p class="text-xs text-slate-300/90" id="hudHint">Idle • Arc Reactor</p>
+          </div>
+          <div class="flex gap-2">
+            <span id="badgeMode" class="chip text-xs px-2 py-1 rounded-full">IDLE</span>
+            <span id="badgeRisk" class="text-xs px-2 py-1 rounded-full border border-white/10 bg-white/5">Risk: <span class="font-semibold" id="riskScore">—</span></span>
+          </div>
+        </div>
+
+        <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold">Core Visual</h3>
+              <button id="btnToggleMode" class="text-xs px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10">Toggle</button>
+            </div>
+            <div class="mt-4 grid place-items-center min-h-[260px]">
+              <div id="vizReactor" class="reactor"></div>
+              <div id="vizWave" class="hidden w-full">
+                <div class="flex items-end justify-center gap-2 h-[220px]">
+                  <div class="wavebar" style="animation-delay:-.9s"></div>
+                  <div class="wavebar" style="animation-delay:-.4s"></div>
+                  <div class="wavebar" style="animation-delay:-1.1s"></div>
+                  <div class="wavebar" style="animation-delay:-.2s"></div>
+                  <div class="wavebar" style="animation-delay:-.7s"></div>
+                  <div class="wavebar" style="animation-delay:-.5s"></div>
+                  <div class="wavebar" style="animation-delay:-1.0s"></div>
+                  <div class="wavebar" style="animation-delay:-.3s"></div>
+                  <div class="wavebar" style="animation-delay:-.8s"></div>
+                  <div class="wavebar" style="animation-delay:-.6s"></div>
+                </div>
+                <p class="text-xs text-center text-slate-300/90 mt-3">Listening • Audio energy visualization</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <h3 class="text-sm font-semibold">System Status</h3>
+            <div class="mt-3 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-300">Hybrid Router</span>
+                <span class="text-xs px-2 py-1 rounded-full border border-white/10 bg-white/5" id="routerMode">Auto</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-300">Memory</span>
+                <span class="text-xs px-2 py-1 rounded-full border border-white/10 bg-white/5" id="memoryMode">JSON (current)</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-300">Security</span>
+                <span class="text-xs px-2 py-1 rounded-full border border-white/10 bg-white/5" id="securityMode">Face Unlock</span>
+              </div>
+
+              <div class="mt-4 border-t border-white/10 pt-4">
+                <label class="text-xs text-slate-300">Project Maturity</label>
+                <input id="maturity" type="range" min="1" max="5" value="2" class="w-full mt-2" />
+                <div class="flex justify-between text-[11px] text-slate-400 mt-1">
+                  <span>MVP</span><span>Prototype</span><span>Beta</span><span>Release</span><span>Hardened</span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-1">
+                <button id="btnRecommend" class="px-3 py-2 text-sm rounded-xl bg-cyan-500/15 border border-cyan-300/20 hover:bg-cyan-500/20">Generate Recommendations</button>
+                <button id="btnReset" class="px-3 py-2 text-sm rounded-xl bg-white/5 border border-white/10 hover:bg-white/10">Reset</button>
+              </div>
+
+              <p class="text-xs text-slate-300/90">Tip: Use the checklist on the right—your risk score and recommendations update live.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-5 border-t border-white/10">
+          <h3 class="text-sm font-semibold">Terminal Log</h3>
+          <div class="terminal mt-3 rounded-2xl border border-white/10 bg-black/55 p-3 h-48 overflow-auto" id="terminal"></div>
+        </div>
+      </div>
+
+      <div class="mt-5 rounded-2xl border border-white/10 bg-black/30 p-5">
+        <h3 class="font-semibold">Quick Wins (High Impact)</h3>
+        <ul class="mt-3 space-y-2 text-sm text-slate-200/90" id="quickWins"></ul>
+      </div>
+    </section>
+
+    <!-- Right: Planner -->
+    <section class="lg:col-span-7 space-y-6">
+      <div class="rounded-2xl border border-white/10 bg-black/35 p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-base font-semibold">What to Improve</h2>
+            <p class="text-sm text-slate-300/90">Select what you want AEGIS to excel at. The planner generates a prioritized roadmap.</p>
+          </div>
+          <div class="flex gap-2">
+            <button id="btnSelectCore" class="text-xs px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10">Select Core</button>
+            <button id="btnSelectAll" class="text-xs px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10">Select All</button>
+          </div>
+        </div>
+
+        <div class="mt-4 grid md:grid-cols-2 gap-3" id="checklist"></div>
+      </div>
+
+      <div class="rounded-2xl border border-white/10 bg-black/35 p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-base font-semibold">Generated Roadmap</h2>
+            <p class="text-sm text-slate-300/90">A concrete set of upgrades: architecture, security, memory, UI/UX, tooling.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnCopyRoadmap" class="text-xs px-2 py-1 rounded-lg bg-cyan-500/10 border border-cyan-300/20 hover:bg-cyan-500/15">Copy</button>
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl border border-white/10 bg-black/40 p-4">
+          <pre class="terminal text-[12px] leading-relaxed whitespace-pre-wrap" id="roadmap"></pre>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-white/10 bg-black/35 p-5">
+        <h2 class="text-base font-semibold">Design Notes (for your current stack)</h2>
+        <div class="mt-3 grid md:grid-cols-2 gap-3">
+          <div class="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <h3 class="text-sm font-semibold">Hybrid Router</h3>
+            <p class="text-sm text-slate-300/90 mt-2">Add a <span class="text-slate-100">policy layer</span> that chooses Gemini vs. Llama based on: privacy tag, latency budget, tool access, and confidence scoring. Log every routing decision for debugging.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <h3 class="text-sm font-semibold">Memory Upgrade Path</h3>
+            <p class="text-sm text-slate-300/90 mt-2">Move from JSON → SQLite → vector store. Keep JSON as an export/import format. Add schema + migrations and a “facts TTL” for volatile data.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <h3 class="text-sm font-semibold">Security Hardening</h3>
+            <p class="text-sm text-slate-300/90 mt-2">Face unlock should include <span class="text-slate-100">liveness</span> (blink/motion), a second factor fallback, and a safe lockout mode. Never store raw encodings unencrypted.</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <h3 class="text-sm font-semibold">Tool Safety</h3>
+            <p class="text-sm text-slate-300/90 mt-2">Wrap every action in a permission gate (confirm / allowlist), dry-run previews, and structured “tool contracts” to avoid unintended OS automation.</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-4 pb-8">
+    <div class="text-xs text-slate-400/90 border-t border-white/10 pt-4">
+      This planner is a local, in-browser helper. It doesn’t call any APIs or upload your data.
+    </div>
+  </footer>
+
+  <script>
+    const terminal = document.getElementById('terminal');
+    const roadmapEl = document.getElementById('roadmap');
+    const quickWinsEl = document.getElementById('quickWins');
+    const riskScoreEl = document.getElementById('riskScore');
+    const badgeMode = document.getElementById('badgeMode');
+    const hudHint = document.getElementById('hudHint');
+    const vizReactor = document.getElementById('vizReactor');
+    const vizWave = document.getElementById('vizWave');
+    const maturity = document.getElementById('maturity');
+
+    const state = {
+      mode: 'IDLE',
+      maturity: 2,
+      selected: new Set(),
+      lastRoadmap: ''
+    };
+
+    const items = [
+      { id:'router', title:'Hybrid Routing Policy', area:'Architecture', risk: 10, win:true,
+        desc:'Auto-select Gemini vs Llama based on privacy, cost, latency, tool needs, and confidence.' },
+      { id:'observability', title:'Observability & Tracing', area:'Architecture', risk: 8, win:true,
+        desc:'Structured logs, correlation IDs, per-module timings, and replayable sessions.' },
+      { id:'memory_schema', title:'Memory Schema + Versioning', area:'Memory', risk: 8, win:true,
+        desc:'Define user profile/facts/events schema; add migrations; keep export/import as JSON.' },
+      { id:'vector_memory', title:'Vector Recall (RAG)', area:'Memory', risk: 7, win:false,
+        desc:'Semantic search over notes/conversations; citations; store embeddings locally.' },
+      { id:'memory_privacy', title:'PII Controls', area:'Memory', risk: 9, win:true,
+        desc:'Encrypt at rest, redaction, per-fact privacy tags, and “forget” commands.' },
+      { id:'face_liveness', title:'Face Unlock Liveness', area:'Security', risk: 10, win:true,
+        desc:'Anti-spoof checks: blink, motion parallax, challenge-response, timeout & lockout.' },
+      { id:'fallback_auth', title:'Fallback Auth (PIN/Passphrase)', area:'Security', risk: 7, win:true,
+        desc:'Safe fallback when camera fails; rate limits; lockscreen mode.' },
+      { id:'secrets', title:'Secrets Management', area:'Security', risk: 9, win:true,
+        desc:'Never hardcode API keys; use .env + OS keychain; rotate keys; audit access.' },
+      { id:'tool_safety', title:'Tool Contracts + Permission Gate', area:'Tools', risk: 9, win:true,
+        desc:'Allowlist actions; confirmation prompts; dry-run previews; structured tool IO.' },
+      { id:'offline_first', title:'Offline-First Mode', area:'Architecture', risk: 6, win:false,
+        desc:'Graceful degradation when internet is down; cached responses; local-only routes.' },
+      { id:'ui_state', title:'UI State Machine', area:'UI/UX', risk: 6, win:true,
+        desc:'Explicit states: boot → auth → idle → listening → processing → acting → error.' },
+      { id:'accessibility', title:'Accessibility & UX polish', area:'UI/UX', risk: 4, win:false,
+        desc:'Keyboard navigation, readable contrast, reduced-motion option, clearer status cues.' },
+      { id:'testing', title:'Test Harness (unit + integration)', area:'Quality', risk: 8, win:true,
+        desc:'Mock mic/cam/LLM/tools; regression suite for memory extraction and routing.' },
+      { id:'config', title:'Central Config + Profiles', area:'Quality', risk: 5, win:true,
+        desc:'One config module; profiles for home/work; toggles for privacy, TTS, voice, tools.' },
+    ];
+
+    function log(line, level='info'){
+      const ts = new Date().toLocaleTimeString();
+      const color = level==='warn' ? 'text-amber-300' : level==='err' ? 'text-red-300' : 'text-lime-300';
+      const div = document.createElement('div');
+      div.className = `terminal text-[12px] leading-relaxed ${color}`;
+      div.textContent = `[${ts}] ${line}`;
+      terminal.appendChild(div);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function setMode(mode){
+      state.mode = mode;
+      badgeMode.textContent = mode;
+      const map = {
+        IDLE: {hint:'Idle • Arc Reactor', reactor:true},
+        LISTENING: {hint:'Listening • Awaiting command', reactor:false},
+        PROCESSING: {hint:'Processing • Synthesizing plan', reactor:true},
+      };
+      const m = map[mode] || map.IDLE;
+      hudHint.textContent = m.hint;
+      vizReactor.classList.toggle('hidden', !m.reactor);
+      vizWave.classList.toggle('hidden', m.reactor);
+
+      // Badge color
+      badgeMode.className = 'chip text-xs px-2 py-1 rounded-full';
+      if(mode==='LISTENING') badgeMode.className += ' border-cyan-300/30 bg-cyan-500/10';
+      if(mode==='PROCESSING') badgeMode.className += ' border-amber-300/30 bg-amber-500/10';
+    }
+
+    function computeRisk(){
+      // Higher maturity reduces risk. Selected items increase risk score (meaning: exposure if not fixed).
+      const base = 35 - (state.maturity-1)*5; // maturity 1->35, 5->15
+      let add = 0;
+      for(const id of state.selected){
+        const it = items.find(x=>x.id===id);
+        if(it) add += it.risk;
+      }
+      // Normalize to 0-100-ish
+      let score = Math.min(100, Math.max(0, Math.round(base + add/2)));
+      riskScoreEl.textContent = score;
+      const badge = document.getElementById('badgeRisk');
+      badge.className = 'text-xs px-2 py-1 rounded-full border bg-white/5';
+      if(score >= 70) badge.className += ' border-red-300/30 text-red-200';
+      else if(score >= 45) badge.className += ' border-amber-300/30 text-amber-200';
+      else badge.className += ' border-emerald-300/30 text-emerald-200';
+      return score;
+    }
+
+    function renderChecklist(){
+      const wrap = document.getElementById('checklist');
+      wrap.innerHTML = '';
+      for(const it of items){
+        const card = document.createElement('label');
+        card.className = 'cursor-pointer rounded-2xl border border-white/10 bg-black/25 p-4 hover:bg-white/5 transition';
+        card.innerHTML = `
+          <div class="flex items-start gap-3">
+            <input type="checkbox" class="mt-1" ${state.selected.has(it.id)?'checked':''} data-id="${it.id}" />
+            <div class="flex-1">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold">${it.title}</div>
+                  <div class="text-[11px] text-slate-400">${it.area} • Risk weight ${it.risk}</div>
+                </div>
+                ${it.win ? '<span class="text-[11px] px-2 py-1 rounded-full border border-cyan-300/20 bg-cyan-500/10 text-cyan-200">Quick win</span>' : '<span class="text-[11px] px-2 py-1 rounded-full border border-white/10 bg-white/5 text-slate-300">Deep work</span>'}
+              </div>
+              <p class="text-sm text-slate-300/90 mt-2">${it.desc}</p>
+            </div>
+          </div>
+        `;
+        wrap.appendChild(card);
+      }
+
+      wrap.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+        cb.addEventListener('change', (e)=>{
+          const id = e.target.dataset.id;
+          if(e.target.checked) state.selected.add(id); else state.selected.delete(id);
+          log(`Checklist updated: ${e.target.checked?'enabled':'disabled'} ${id}`);
+          updateAll();
+        });
+      });
+    }
+
+    function generateRoadmap(){
+      const sel = [...state.selected].map(id=>items.find(x=>x.id===id)).filter(Boolean);
+      const byArea = sel.reduce((acc, it)=>{ (acc[it.area] ||= []).push(it); return acc; }, {});
+
+      const maturityLabel = ['MVP','Prototype','Beta','Release','Hardened'][state.maturity-1] || 'Prototype';
+      const risk = computeRisk();
+
+      const header = `AEGIS Improvement Roadmap\nMaturity: ${maturityLabel}\nRisk score (lower is better): ${risk}\nSelected upgrades: ${sel.length}\n`;
+
+      const principles = [
+        '1) Make routing decisions explicit (policy + logs).',
+        '2) Treat tools as dangerous: contracts, allowlists, confirmations, and audit trails.',
+        '3) Memory is a database: schema, encryption, and deletion are first-class.',
+        '4) UI is a state machine: predictable transitions, error states, and recovery.',
+      ].join('\n');
+
+      const plan = [];
+      plan.push(header);
+      plan.push('Guiding Principles');
+      plan.push(principles);
+
+      // Priority: high risk first, quick wins first
+      sel.sort((a,b)=> (b.risk - a.risk) || (Number(b.win)-Number(a.win)));
+
+      function section(title, bullets){
+        if(!bullets.length) return;
+        plan.push('\n' + title);
+        for(const b of bullets) plan.push(`- ${b}`);
+      }
+
+      const p0 = [];
+      const p1 = [];
+      const p2 = [];
+
+      for(const it of sel){
+        const line = `${it.title}: ${it.desc}`;
+        if(it.risk >= 9) p0.push(line);
+        else if(it.risk >= 7) p1.push(line);
+        else p2.push(line);
+      }
+
+      section('P0 (Do first: safety/security/reliability)', p0);
+      section('P1 (Next: architecture + memory depth)', p1);
+      section('P2 (Polish + scale)', p2);
+
+      // Concrete implementation hints tailored to their described stack
+      const hints = [];
+      if(state.selected.has('router')){
+        hints.push('Hybrid Router: implement a router.py that returns {model, reason, privacy_tag, tools_allowed}. Add confidence thresholds and fallback logic.');
+      }
+      if(state.selected.has('memory_schema')){
+        hints.push('Memory: switch JSON writes to an atomic write (tmp + rename) and add schema_version. Then migrate to SQLite tables: profile, facts, events.');
+      }
+      if(state.selected.has('memory_privacy')){
+        hints.push('Encryption: use libsodium/cryptography (Fernet) with key stored in OS keychain. Add commands: "forget X", "export my data".');
+      }
+      if(state.selected.has('face_liveness')){
+        hints.push('Face unlock: add liveness challenge (blink twice / turn head). Add lockout timer and secure failure mode (no tools, no memory reveal).');
+      }
+      if(state.selected.has('tool_safety')){
+        hints.push('Tools: create a tool registry with JSON schema inputs/outputs; require explicit user confirmation for high-impact tools (shutdown, messaging).');
+      }
+      if(state.selected.has('observability')){
+        hints.push('Observability: adopt structured logging (json) and a session_id per conversation; log latencies for STT/LLM/TTS/tools.');
+      }
+      if(state.selected.has('ui_state')){
+        hints.push('UI: define a finite state machine in interface.py; render based on state; add an ERROR state with retry + diagnostics panel.');
+      }
+      if(state.selected.has('testing')){
+        hints.push('Testing: add golden tests for memory extraction prompts and routing; mock mic/cam; run CI locally with a test profile.');
+      }
+
+      if(hints.length) section('Implementation Hints (match your current modules)', hints);
+
+      // Suggested next questions
+      const questions = [
+        'What data must never leave the device? (Define privacy tags.)',
+        'Which tools are allowed without confirmation? (Define allowlist.)',
+        'What is the minimum acceptable boot-to-ready latency?',
+        'What is your memory retention policy (indefinite vs TTL per fact type)?'
+      ];
+      section('Questions to Answer (to avoid rework)', questions);
+
+      const out = plan.join('\n');
+      state.lastRoadmap = out;
+      roadmapEl.textContent = out;
+    }
+
+    function renderQuickWins(){
+      const wins = items.filter(i=>i.win).slice();
+      // If user selected, show selected wins first
+      wins.sort((a,b)=> (Number(state.selected.has(b.id)) - Number(state.selected.has(a.id))) || (b.risk - a.risk));
+      const top = wins.slice(0,6);
+      quickWinsEl.innerHTML = '';
+      for(const it of top){
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-2';
+        li.innerHTML = `
+          <span class="mt-1 h-2 w-2 rounded-full ${state.selected.has(it.id)?'bg-cyan-300':'bg-white/30'}"></span>
+          <div>
+            <div class="font-semibold">${it.title}</div>
+            <div class="text-xs text-slate-300/90">${it.desc}</div>
+          </div>
+        `;
+        quickWinsEl.appendChild(li);
+      }
+    }
+
+    function updateAll(){
+      computeRisk();
+      generateRoadmap();
+      renderQuickWins();
+    }
+
+    // Buttons
+    document.getElementById('btnToggleMode').addEventListener('click', ()=>{
+      setMode(state.mode==='IDLE' ? 'LISTENING' : state.mode==='LISTENING' ? 'PROCESSING' : 'IDLE');
+      log(`HUD mode set to ${state.mode}`);
+    });
+
+    document.getElementById('btnDemo').addEventListener('click', async ()=>{
+      log('HUD demo: boot sequence initiated');
+      setMode('PROCESSING');
+      await new Promise(r=>setTimeout(r, 650));
+      setMode('IDLE');
+      await new Promise(r=>setTimeout(r, 350));
+      setMode('LISTENING');
+      await new Promise(r=>setTimeout(r, 900));
+      setMode('PROCESSING');
+      await new Promise(r=>setTimeout(r, 900));
+      setMode('IDLE');
+      log('HUD demo: complete');
+    });
+
+    document.getElementById('btnRecommend').addEventListener('click', ()=>{
+      setMode('PROCESSING');
+      log('Generating recommendations from selected goals…', 'warn');
+      setTimeout(()=>{
+        setMode('IDLE');
+        log('Roadmap refreshed');
+        updateAll();
+      }, 350);
+    });
+
+    document.getElementById('btnReset').addEventListener('click', ()=>{
+      state.selected.clear();
+      maturity.value = 2;
+      state.maturity = 2;
+      renderChecklist();
+      log('Planner reset');
+      updateAll();
+    });
+
+    document.getElementById('btnSelectAll').addEventListener('click', ()=>{
+      items.forEach(i=>state.selected.add(i.id));
+      renderChecklist();
+      log('Selected all improvements');
+      updateAll();
+    });
+
+    document.getElementById('btnSelectCore').addEventListener('click', ()=>{
+      state.selected.clear();
+      ['router','memory_schema','memory_privacy','face_liveness','tool_safety','ui_state','observability'].forEach(id=>state.selected.add(id));
+      renderChecklist();
+      log('Selected core improvements set');
+      updateAll();
+    });
+
+    maturity.addEventListener('input', (e)=>{
+      state.maturity = Number(e.target.value);
+      log(`Maturity set to ${state.maturity}`);
+      updateAll();
+    });
+
+    async function copyText(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        log('Copied to clipboard');
+      } catch {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        log('Copied to clipboard (fallback)');
+      }
+    }
+
+    document.getElementById('btnCopyRoadmap').addEventListener('click', ()=>copyText(state.lastRoadmap || roadmapEl.textContent));
+
+    document.getElementById('btnExport').addEventListener('click', ()=>{
+      const payload = {
+        exported_at: new Date().toISOString(),
+        maturity: state.maturity,
+        selected: [...state.selected],
+        roadmap: roadmapEl.textContent
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'aegis_upgrade_plan.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      log('Exported plan as aegis_upgrade_plan.json');
+    });
+
+    // Init
+    (function init(){
+      log('AEGIS Planner ready');
+      state.selected.add('router');
+      state.selected.add('memory_schema');
+      state.selected.add('tool_safety');
+      renderChecklist();
+      setMode('IDLE');
+      updateAll();
+    })();
+  </script>
+</body>
+</html>

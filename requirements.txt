@@ -1,0 +1,14 @@
+opencv-python
+google-genai
+numpy
+ollama
+Pillow
+psutil
+PyAutoGUI
+PyQt5
+pyttsx3
+pywhatkit
+requests
+screen-brightness-control
+sentence-transformers
+SpeechRecognition
