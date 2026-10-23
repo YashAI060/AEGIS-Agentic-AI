@@ -13,7 +13,7 @@ Deployed on **Local Windows OS**
 
 <br>
 
-<a href="https://github.com/YashAI060/AEGIS-Agentic-AI" title="Watch the AEGIS demo video">
+<a href="https://youtu.be/D7kuOhj_XjU?si=TrIwqbK5f1zxD6Rh" title="Watch the AEGIS demo video">
   <img src="face_scan.gif" width="820" alt="AEGIS biometric face scan demo thumbnail">
 </a>
 
@@ -359,11 +359,3 @@ AEGIS-Agentic-AI/
 **Developed by:** Yash Raj & Jami Ahad
 
 Built with Python, PyQt5, OpenCV, SpeechRecognition, `psutil`, `sentence-transformers`, and the Google GenAI SDK (Gemini 2.5 Flash API). Built for the **Gemini Live Agent Challenge**.
-
----
-
-```
-
-<FollowUp label="Would you like any additional sections or badge modifications added to your README?" query="Add custom markdown badge links and status indicators to the top of the AEGIS README."/>
-
-```
