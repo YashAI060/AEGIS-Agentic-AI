@@ -6,7 +6,8 @@
 Local vector routing runs the reflexes. Gemini Function Calling executes complex tasks. Biometric security protects the system.
 
 [**Live Repository**](https://github.com/YashAI060/AEGIS-Agentic-AI) ·
-[**Demo Video**](https://github.com/YashAI060/AEGIS-Agentic-AI) ·
+[**Demo Video**](https://youtu.be/D7kuOhj_XjU?si=TrIwqbK5f1zxD6Rh) ·
+[**Devpost Submission**](https://devpost.com/software/aegis-7ta4xu) ·
 Built for **Gemini Live Agent Challenge**, theme *Agentic AI & Productivity* ·
 Deployed on **Local Windows OS**
 
@@ -22,7 +23,7 @@ Deployed on **Local Windows OS**
 
 ---
 
-## 📋 Contents
+## Contents
 
 1. [The problem](#1-the-problem)
 2. [What AEGIS does](#2-what-aegis-does)
@@ -355,7 +356,7 @@ AEGIS-Agentic-AI/
 
 ## 17. Team and credits
 
-**Developed by:** Yash Raj
+**Developed by:** Yash Raj & Jami Ahad
 
 Built with Python, PyQt5, OpenCV, SpeechRecognition, `psutil`, `sentence-transformers`, and the Google GenAI SDK (Gemini 2.5 Flash API). Built for the **Gemini Live Agent Challenge**.
 
